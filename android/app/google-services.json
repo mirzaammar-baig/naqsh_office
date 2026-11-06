@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "212719793767",
+    "project_id": "naqsh-c1305",
+    "storage_bucket": "naqsh-c1305.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:212719793767:android:2008da377b5f6a384306c2",
+        "android_client_info": {
+          "package_name": "com.naqsh.naqsh_office"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCpw1bHMI0AlMVY-HqOIDela9ZPojdmRPw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
