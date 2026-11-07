@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:naqsh_office/core/theme/app_theme.dart';
+import 'package:naqsh_office/features/members/members_notifier.dart';
 import 'package:naqsh_office/features/plots/plot_providers.dart';
 import 'package:naqsh_office/features/plots/plot_status.dart';
 
@@ -11,20 +12,15 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final total = ref.watch(allPlotsProvider).length;
     final counts = ref.watch(plotStatusCountsProvider);
+    final totalMembers = ref.watch(totalMembersProvider);
+    final activeMembers = ref.watch(activeMembersProvider);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
         _TotalCard(total: total, counts: counts),
         const SizedBox(height: 24),
-        const Text(
-          'Plots by status',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            color: AppColors.textDark,
-          ),
-        ),
+        const _SectionTitle('Plots by status'),
         const SizedBox(height: 12),
         GridView(
           shrinkWrap: true,
@@ -37,14 +33,74 @@ class DashboardScreen extends ConsumerWidget {
           ),
           children: [
             for (final status in PlotStatus.values)
-              _StatusCard(
-                status: status,
-                count: counts[status] ?? 0,
-                total: total,
+              _StatCard(
+                title: status.label,
+                value: counts[status] ?? 0,
+                color: status.color,
+                icon: _iconFor(status),
+                trailing: total == 0
+                    ? '0%'
+                    : '${((counts[status] ?? 0) * 100 / total).round()}%',
               ),
           ],
         ),
+        const SizedBox(height: 24),
+        const _SectionTitle('Members'),
+        const SizedBox(height: 12),
+        GridView(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            mainAxisExtent: 132,
+          ),
+          children: [
+            _StatCard(
+              title: 'Total Members',
+              value: totalMembers,
+              color: AppColors.primary,
+              icon: Icons.groups_rounded,
+            ),
+            _StatCard(
+              title: 'Active Members',
+              value: activeMembers,
+              color: const Color(0xFF16A34A),
+              icon: Icons.how_to_reg_outlined,
+            ),
+          ],
+        ),
       ],
+    );
+  }
+}
+
+IconData _iconFor(PlotStatus status) {
+  return switch (status) {
+    PlotStatus.available => Icons.check_circle_outline_rounded,
+    PlotStatus.hold => Icons.pause_circle_outline_rounded,
+    PlotStatus.booked => Icons.bookmark_border_rounded,
+    PlotStatus.allotted => Icons.assignment_turned_in_outlined,
+    PlotStatus.possession => Icons.key_rounded,
+    PlotStatus.blocked => Icons.block_rounded,
+  };
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.w800,
+        color: AppColors.textDark,
+      ),
     );
   }
 }
@@ -129,32 +185,23 @@ class _TotalCard extends StatelessWidget {
   }
 }
 
-class _StatusCard extends StatelessWidget {
-  const _StatusCard({
-    required this.status,
-    required this.count,
-    required this.total,
+class _StatCard extends StatelessWidget {
+  const _StatCard({
+    required this.title,
+    required this.value,
+    required this.color,
+    required this.icon,
+    this.trailing,
   });
 
-  final PlotStatus status;
-  final int count;
-  final int total;
-
-  IconData get icon {
-    return switch (status) {
-      PlotStatus.available => Icons.check_circle_outline_rounded,
-      PlotStatus.hold => Icons.pause_circle_outline_rounded,
-      PlotStatus.booked => Icons.bookmark_border_rounded,
-      PlotStatus.allotted => Icons.assignment_turned_in_outlined,
-      PlotStatus.possession => Icons.key_rounded,
-      PlotStatus.blocked => Icons.block_rounded,
-    };
-  }
+  final String title;
+  final int value;
+  final Color color;
+  final IconData icon;
+  final String? trailing;
 
   @override
   Widget build(BuildContext context) {
-    final percent = total == 0 ? 0 : (count * 100 / total).round();
-
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -178,35 +225,36 @@ class _StatusCard extends StatelessWidget {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: status.color.withValues(alpha: 0.12),
+                  color: color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, size: 20, color: status.color),
+                child: Icon(icon, size: 20, color: color),
               ),
               const Spacer(),
-              Text(
-                '$percent%',
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textMuted,
+              if (trailing != null)
+                Text(
+                  trailing!,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textMuted,
+                  ),
                 ),
-              ),
             ],
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '$count',
+                '$value',
                 style: TextStyle(
                   fontSize: 30,
                   fontWeight: FontWeight.w800,
-                  color: status.color,
+                  color: color,
                 ),
               ),
               Text(
-                status.label,
+                title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
