@@ -22,7 +22,7 @@ class AppDrawer extends StatelessWidget {
 
   final String userEmail;
 
-  static const List<_MenuGroup> groups = [
+  static const List<_MenuGroup> _groups = [
     _MenuGroup('Sales', [
       _MenuItem('Plot Map', Icons.map_outlined),
       _MenuItem('Bookings', Icons.bookmark_border_rounded),
@@ -158,7 +158,7 @@ class AppDrawer extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.only(bottom: 8),
               children: [
-                for (final group in groups) ...[
+                for (final group in _groups) ...[
                   Padding(
                     padding: const EdgeInsets.fromLTRB(22, 18, 22, 6),
                     child: Text(

@@ -4,6 +4,7 @@ import 'package:naqsh_office/core/theme/app_theme.dart';
 import 'package:naqsh_office/core/widgets/filter_pill.dart';
 import 'package:naqsh_office/features/members/members_notifier.dart';
 import 'package:naqsh_office/features/members/widgets/member_card.dart';
+import 'package:naqsh_office/features/members/member_detail_screen.dart';
 
 class MembersScreen extends ConsumerStatefulWidget {
   const MembersScreen({super.key});
@@ -183,7 +184,19 @@ class _MembersScreenState extends ConsumerState<MembersScreen> {
               itemCount: members.length,
               separatorBuilder: (context, index) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
-                return MemberCard(member: members[index]);
+                final member = members[index];
+                return MemberCard(
+                  member: member,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            MemberDetailScreen(memberId: member.id),
+                      ),
+                    );
+                  },
+                );
               },
             ),
           ),

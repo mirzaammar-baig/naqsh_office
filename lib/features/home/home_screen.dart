@@ -7,6 +7,7 @@ import 'package:naqsh_office/features/home/app_drawer.dart';
 import 'package:naqsh_office/features/auth/auth_repository.dart';
 import 'package:naqsh_office/features/plots/blocks_screen.dart';
 import 'package:naqsh_office/features/plots/plot_form_screen.dart';
+import 'package:naqsh_office/features/members/member_form_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -65,6 +66,22 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               icon: const Icon(Icons.add_rounded, size: 18),
               label: const Text('Add Plot'),
+            ),
+          if (selectedIndex == 2)
+            FilledButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const MemberFormScreen(),
+                  ),
+                );
+              },
+              style: FilledButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+              ),
+              icon: const Icon(Icons.add_rounded, size: 18),
+              label: const Text('Add Member'),
             ),
           const SizedBox(width: 8),
         ],
