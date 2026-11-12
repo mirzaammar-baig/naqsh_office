@@ -1,3 +1,4 @@
+import 'package:naqsh_office/features/plots/plot_details.dart';
 import 'package:naqsh_office/features/plots/plot_status.dart';
 
 class Plot {
@@ -12,6 +13,7 @@ class Plot {
     required this.isCorner,
     required this.status,
     required this.pricePaisa,
+    this.details = const PlotDetails(),
   });
 
   final String id;
@@ -24,6 +26,9 @@ class Plot {
   final bool isCorner;
   final PlotStatus status;
   final int pricePaisa;
+
+  // Extra tafseel: description, facing, utilities, tags, faasle wagera.
+  final PlotDetails details;
 
   // Demo City ke liye 1 Marla = 225 sqft
   static const int sqftPerMarla = 225;
@@ -53,6 +58,7 @@ class Plot {
     bool? isCorner,
     PlotStatus? status,
     int? pricePaisa,
+    PlotDetails? details,
   }) {
     return Plot(
       id: id,
@@ -65,6 +71,7 @@ class Plot {
       isCorner: isCorner ?? this.isCorner,
       status: status ?? this.status,
       pricePaisa: pricePaisa ?? this.pricePaisa,
+      details: details ?? this.details,
     );
   }
 }

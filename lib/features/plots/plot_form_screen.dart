@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:naqsh_office/core/theme/app_input_decoration.dart';
 import 'package:naqsh_office/core/theme/app_theme.dart';
 import 'package:naqsh_office/core/utils/input_validators.dart';
 import 'package:naqsh_office/features/plots/plot.dart';
+import 'package:naqsh_office/features/plots/plot_details.dart';
+import 'package:naqsh_office/features/plots/widgets/plot_details_section.dart';
 import 'package:naqsh_office/features/plots/plot_providers.dart';
 import 'package:naqsh_office/features/plots/plot_status.dart';
 import 'package:naqsh_office/features/plots/plots_notifier.dart';
@@ -30,6 +33,8 @@ class _PlotFormScreenState extends ConsumerState<PlotFormScreen> {
   String category = 'Residential';
   bool isCorner = false;
   PlotStatus status = PlotStatus.available;
+  PlotDetails details = const PlotDetails();
+  bool isSaving = false;
 
   // Width aur Length: 3 digits tak, aur ek decimal (jaise 22.5).
   static final TextInputFormatter decimalFormatter =
@@ -62,6 +67,7 @@ class _PlotFormScreenState extends ConsumerState<PlotFormScreen> {
     category = existing?.category ?? 'Residential';
     isCorner = existing?.isCorner ?? false;
     status = existing?.status ?? PlotStatus.available;
+    details = existing?.details ?? const PlotDetails();
   }
 
   @override
@@ -77,58 +83,106 @@ class _PlotFormScreenState extends ConsumerState<PlotFormScreen> {
   String buildPlotNumber(String block, int number) {
     return '$block-${number.toString().padLeft(2, '0')}';
   }
-
-  void save() {
-    if (!formKey.currentState!.validate()) {
+  Future<void> save() async {
+    if (isSaving || !formKey.currentState!.validate()) {
       return;
     }
 
-    final width = double.parse(widthController.text.trim());
-    final length = double.parse(lengthController.text.trim());
-    final pricePaisa = int.parse(priceController.text.trim()) * 100;
+    final width = double.tryParse(widthController.text.trim());
+    final length = double.tryParse(lengthController.text.trim());
+    final priceRupees = int.tryParse(priceController.text.trim());
+    final plotNumberValue = int.tryParse(numberController.text.trim());
+
+    if (width == null ||
+        length == null ||
+        priceRupees == null ||
+        (widget.plot == null && (selectedBlock == null || plotNumberValue == null))) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill Block, Plot Number, Width, Length and Price.'),
+        ),
+      );
+      return;
+    }
+
+    final pricePaisa = priceRupees * 100;
 
     final notifier = ref.read(plotsProvider.notifier);
     final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
     final existing = widget.plot;
-    String message;
 
-    if (existing != null) {
-      notifier.updatePlot(
-        existing.copyWith(
-          widthFeet: width,
-          lengthFeet: length,
-          category: category,
-          isCorner: isCorner,
-          pricePaisa: pricePaisa,
+    setState(() {
+      isSaving = true;
+    });
+
+    try {
+      String message;
+
+      if (existing != null) {
+        await notifier
+            .updatePlot(
+          existing.copyWith(
+            widthFeet: width,
+            lengthFeet: length,
+            category: category,
+            isCorner: isCorner,
+            pricePaisa: pricePaisa,
+            details: details,
+          ),
+        )
+            .timeout(const Duration(seconds: 10));
+        message = 'Plot ${existing.plotNumber} updated';
+      } else {
+        final block = selectedBlock!;
+        final plotNumber = buildPlotNumber(block, plotNumberValue!);
+        await notifier
+            .addPlot(
+          Plot(
+            id: plotNumber.toLowerCase(),
+            societyId: 'demo-city',
+            block: block,
+            plotNumber: plotNumber,
+            widthFeet: width,
+            lengthFeet: length,
+            category: category,
+            isCorner: isCorner,
+            status: status,
+            pricePaisa: pricePaisa,
+            details: details,
+          ),
+        )
+            .timeout(const Duration(seconds: 10));
+        message = 'Plot $plotNumber added';
+      }
+
+      navigator.pop();
+      messenger.showSnackBar(SnackBar(content: Text(message)));
+    } on TimeoutException {
+      if (mounted) {
+        setState(() {
+          isSaving = false;
+        });
+      }
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Could not reach the server. Check your internet and try again.',
+          ),
         ),
       );
-      message = 'Plot ${existing.plotNumber} updated';
-    } else {
-      final block = selectedBlock!;
-      final plotNumber = buildPlotNumber(
-        block,
-        int.parse(numberController.text.trim()),
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          isSaving = false;
+        });
+      }
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not save the plot: $error')),
       );
-      notifier.addPlot(
-        Plot(
-          id: plotNumber.toLowerCase(),
-          societyId: 'demo-city',
-          block: block,
-          plotNumber: plotNumber,
-          widthFeet: width,
-          lengthFeet: length,
-          category: category,
-          isCorner: isCorner,
-          status: status,
-          pricePaisa: pricePaisa,
-        ),
-      );
-      message = 'Plot $plotNumber added';
     }
-
-    Navigator.pop(context);
-    messenger.showSnackBar(SnackBar(content: Text(message)));
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -345,12 +399,18 @@ class _PlotFormScreenState extends ConsumerState<PlotFormScreen> {
               ),
               validator: InputValidators.priceRupees,
             ),
+            PlotDetailsSection(
+              initial: details,
+              onChanged: (value) {
+                details = value;
+              },
+            ),
             const SizedBox(height: 28),
 
             SizedBox(
               height: 54,
               child: ElevatedButton(
-                onPressed: save,
+                onPressed: isSaving ? null : save,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
@@ -360,7 +420,9 @@ class _PlotFormScreenState extends ConsumerState<PlotFormScreen> {
                   ),
                 ),
                 child: Text(
-                  isEdit ? 'Save Changes' : 'Save Plot',
+                  isSaving
+                      ? 'Saving...'
+                      : (isEdit ? 'Save Changes' : 'Save Plot'),
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,

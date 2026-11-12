@@ -1,15 +1,71 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:naqsh_office/core/theme/app_theme.dart';
+import 'package:naqsh_office/features/plots/plot.dart';
+import 'package:naqsh_office/features/plots/widgets/plot_details_view.dart';
 import 'package:naqsh_office/features/plots/plot_form_screen.dart';
 import 'package:naqsh_office/features/plots/plot_providers.dart';
 import 'package:naqsh_office/features/plots/plot_status.dart';
+import 'package:naqsh_office/features/plots/plots_notifier.dart';
 import 'package:naqsh_office/features/plots/widgets/status_chip.dart';
 
 class PlotDetailScreen extends ConsumerWidget {
   const PlotDetailScreen({super.key, required this.plotId});
 
   final String plotId;
+
+  // Delete: pehle puchho, phir mitao, phir screen band karo.
+  Future<void> _confirmDelete(
+      BuildContext context,
+      WidgetRef ref,
+      Plot plot,
+      ) async {
+    // await se pehle hi ye cheezein pakad lo.
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final notifier = ref.read(plotsProvider.notifier);
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text('Delete ${plot.plotNumber}?'),
+          content: const Text(
+            'This plot will be removed permanently. This cannot be undone.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFDC2626),
+              ),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    navigator.pop();
+    try {
+      await notifier.deletePlot(plot.id);
+      messenger.showSnackBar(
+        SnackBar(content: Text('Plot ${plot.plotNumber} deleted')),
+      );
+    } catch (error) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Could not delete the plot. Try again.')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -34,32 +90,69 @@ class PlotDetailScreen extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: FilledButton.icon(
-                  onPressed: canEdit
-                      ? () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => PlotFormScreen(plot: plot),
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 54,
+                      child: FilledButton.icon(
+                        onPressed: canEdit
+                            ? () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  PlotFormScreen(plot: plot),
+                            ),
+                          );
+                        }
+                            : null,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        icon: const Icon(Icons.edit_outlined),
+                        label: const Text(
+                          'Edit Plot',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
-                    );
-                  }
-                      : null,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  icon: const Icon(Icons.edit_outlined),
-                  label: const Text(
-                    'Edit Plot',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    height: 54,
+                    child: OutlinedButton.icon(
+                      onPressed: canEdit
+                          ? () => _confirmDelete(context, ref, plot)
+                          : null,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFDC2626),
+                        side: BorderSide(
+                          color: canEdit
+                              ? const Color(0xFFDC2626)
+                              : AppColors.border,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      icon: const Icon(Icons.delete_outline_rounded),
+                      label: const Text(
+                        'Delete',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
               if (!canEdit)
                 const Padding(
@@ -75,7 +168,7 @@ class PlotDetailScreen extends ConsumerWidget {
                       SizedBox(width: 6),
                       Flexible(
                         child: Text(
-                          'Only available plots can be edited.',
+                          'Only available plots can be edited or deleted.',
                           style: TextStyle(
                             fontSize: 13,
                             color: AppColors.textMuted,
@@ -214,6 +307,8 @@ class PlotDetailScreen extends ConsumerWidget {
               ),
             ],
           ),
+          const SizedBox(height: 24),
+          PlotDetailsView(details: plot.details),
         ],
       ),
     );
