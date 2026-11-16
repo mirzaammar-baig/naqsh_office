@@ -105,20 +105,59 @@ class PlotsNotifier extends Notifier<PlotsState> {
     return ref.read(plotRepositoryProvider).addBlock(block);
   }
 
+  Future<void> editBlock({
+    required Block block,
+    required String newCode,
+    required String description,
+  }) {
+    final repository = ref.read(plotRepositoryProvider);
+    final clean = newCode.trim().toUpperCase();
+    if (clean != block.code) {
+      return repository.renameEmptyBlock(block.code, clean, description);
+    }
+    return repository.updateBlockDescription(block.code, description);
+  }
+
+  Future<void> deleteBlock(String code) {
+    return ref.read(plotRepositoryProvider).deleteBlock(code);
+  }
+
   // plotNumber poora hota hai, jaise 'B-07'.
   bool plotExists(String plotNumber) {
     return state.plots.any((plot) => plot.plotNumber == plotNumber);
   }
 
   Future<void> addPlot(Plot plot) {
-    return ref.read(plotRepositoryProvider).savePlot(plot);
+    return ref.read(plotRepositoryProvider).savePlot(plot, isNew: true);
   }
 
   Future<void> updatePlot(Plot updated) {
-    return ref.read(plotRepositoryProvider).savePlot(updated);
+    return ref.read(plotRepositoryProvider).savePlot(updated, isNew: false);
   }
   Future<void> deletePlot(String plotId) {
     return ref.read(plotRepositoryProvider).deletePlot(plotId);
+  }
+  Future<void> allotPlot(String plotId) {
+    return ref.read(plotRepositoryProvider).allotPlot(plotId);
+  }
+
+  Future<void> releasePlot(String plotId) {
+    return ref.read(plotRepositoryProvider).releasePlot(plotId);
+  }
+  Future<void> holdPlot(String plotId, String memberId, DateTime until) {
+    return ref.read(plotRepositoryProvider).holdPlot(plotId, memberId, until);
+  }
+
+  Future<void> bookHeldPlot(String plotId) {
+    return ref.read(plotRepositoryProvider).bookHeldPlot(plotId);
+  }
+
+  Future<void> startPossession(String plotId) {
+    return ref.read(plotRepositoryProvider).startPossession(plotId);
+  }
+
+  Future<void> blockPlot(String plotId) {
+    return ref.read(plotRepositoryProvider).blockPlot(plotId);
   }
 }
 

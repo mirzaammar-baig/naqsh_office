@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:naqsh_office/features/auth/auth_repository.dart';
+import 'package:naqsh_office/features/members/plot_booking.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:naqsh_office/features/members/firestore_member_repository.dart';
@@ -51,6 +53,45 @@ class MembersNotifier extends Notifier<List<Member>> {
 
   Future<void> setActive(String id, bool value) {
     return ref.read(memberRepositoryProvider).setActive(id, value);
+  }
+  // Earnest wale plots Booked, baaqi Hold. Receipt numbers wapas milte hain.
+  Future<List<String>> addMemberWithPlots(
+      Member member,
+      List<PlotBooking> bookings,
+      ) {
+    return ref
+        .read(memberRepositoryProvider)
+        .addMemberWithPlots(
+      member,
+      bookings,
+      by: AuthRepository().currentUser?.email ?? '',
+    );
+  }
+
+  // Maujooda member ko plots do: earnest wale Booked, baaqi Hold.
+  Future<List<String>> assignPlots(
+      String memberId,
+      List<PlotBooking> bookings, {
+        int holdDays = 3,
+      }) {
+    return ref
+        .read(memberRepositoryProvider)
+        .assignPlots(
+      memberId,
+      bookings,
+      by: AuthRepository().currentUser?.email ?? '',
+      holdDays: holdDays,
+    );
+  }
+
+  // Deactivate: member inactive aur uske plots wapas Available.
+  Future<void> deactivateMember(String memberId) {
+    return ref.read(memberRepositoryProvider).deactivateMember(memberId);
+  }
+
+  // Delete: member mit jata hai aur uske plots wapas Available.
+  Future<void> deleteMember(String memberId) {
+    return ref.read(memberRepositoryProvider).deleteMember(memberId);
   }
 }
 

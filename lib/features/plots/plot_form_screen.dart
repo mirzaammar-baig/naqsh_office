@@ -88,29 +88,35 @@ class _PlotFormScreenState extends ConsumerState<PlotFormScreen> {
       return;
     }
 
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final notifier = ref.read(plotsProvider.notifier);
+    final existing = widget.plot;
+
+    // parse ki jagah tryParse: khali ya ghalat text par crash nahi hota.
     final width = double.tryParse(widthController.text.trim());
     final length = double.tryParse(lengthController.text.trim());
     final priceRupees = int.tryParse(priceController.text.trim());
     final plotNumberValue = int.tryParse(numberController.text.trim());
 
+    final missingAddFields =
+        existing == null && (selectedBlock == null || plotNumberValue == null);
+
     if (width == null ||
         length == null ||
         priceRupees == null ||
-        (widget.plot == null && (selectedBlock == null || plotNumberValue == null))) {
-      ScaffoldMessenger.of(context).showSnackBar(
+        missingAddFields) {
+      messenger.showSnackBar(
         const SnackBar(
-          content: Text('Please fill Block, Plot Number, Width, Length and Price.'),
+          content: Text(
+            'Please fill Block, Plot Number, Width, Length and Price.',
+          ),
         ),
       );
       return;
     }
 
     final pricePaisa = priceRupees * 100;
-
-    final notifier = ref.read(plotsProvider.notifier);
-    final messenger = ScaffoldMessenger.of(context);
-    final navigator = Navigator.of(context);
-    final existing = widget.plot;
 
     setState(() {
       isSaving = true;

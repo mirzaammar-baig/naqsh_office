@@ -37,9 +37,14 @@ class PlotCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
+                    // Block ka badge: naam lamba ho to dabba khud chora ho jata hai.
                     Container(
-                      width: 46,
-                      height: 46,
+                      constraints: const BoxConstraints(
+                        minWidth: 46,
+                        maxWidth: 120,
+                        minHeight: 46,
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: color.withValues(alpha: 0.12),
@@ -47,8 +52,10 @@ class PlotCard extends StatelessWidget {
                       ),
                       child: Text(
                         plot.block,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 20,
+                          fontSize: plot.block.length <= 3 ? 20 : 15,
                           fontWeight: FontWeight.w800,
                           color: color,
                         ),
