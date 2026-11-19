@@ -1,3 +1,4 @@
+import 'package:naqsh_office/features/plots/plot_details.dart';
 import 'package:naqsh_office/features/plots/plot_status.dart';
 
 class Plot {
@@ -12,6 +13,9 @@ class Plot {
     required this.isCorner,
     required this.status,
     required this.pricePaisa,
+    this.details = const PlotDetails(),
+    this.memberId,
+    this.holdUntil,
   });
 
   final String id;
@@ -24,6 +28,15 @@ class Plot {
   final bool isCorner;
   final PlotStatus status;
   final int pricePaisa;
+
+  // Extra tafseel: description, facing, utilities, tags, faasle wagera.
+  final PlotDetails details;
+
+  // Is plot ka maalik (ya jis ke naam par hold/booked hai) member.
+  final String? memberId;
+
+  // Hold ki aakhri tareekh (sirf Hold plots ke liye).
+  final DateTime? holdUntil;
 
   // Demo City ke liye 1 Marla = 225 sqft
   static const int sqftPerMarla = 225;
@@ -44,8 +57,40 @@ class Plot {
 
   String get cornerText => isCorner ? 'Yes' : 'No';
 
+  // Hold ki tareekh guzar gayi?
+  bool get isHoldExpired {
+    final until = holdUntil;
+    return status == PlotStatus.hold &&
+        until != null &&
+        until.isBefore(DateTime.now());
+  }
+
+  // Jaise: 15 Nov 2026
+  String get holdUntilText {
+    final until = holdUntil;
+    if (until == null) {
+      return 'No date';
+    }
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return '${until.day} ${months[until.month - 1]} ${until.year}';
+  }
+
   // Sirf wohi cheezein badal sakte hain jo edit ho sakti hain.
   // id, societyId, block aur plotNumber locked hain.
+  // clearMemberId / clearHoldUntil true ho to wo khali ho jati hain.
   Plot copyWith({
     double? widthFeet,
     double? lengthFeet,
@@ -53,6 +98,11 @@ class Plot {
     bool? isCorner,
     PlotStatus? status,
     int? pricePaisa,
+    PlotDetails? details,
+    String? memberId,
+    bool clearMemberId = false,
+    DateTime? holdUntil,
+    bool clearHoldUntil = false,
   }) {
     return Plot(
       id: id,
@@ -65,6 +115,9 @@ class Plot {
       isCorner: isCorner ?? this.isCorner,
       status: status ?? this.status,
       pricePaisa: pricePaisa ?? this.pricePaisa,
+      details: details ?? this.details,
+      memberId: clearMemberId ? null : (memberId ?? this.memberId),
+      holdUntil: clearHoldUntil ? null : (holdUntil ?? this.holdUntil),
     );
   }
 }
