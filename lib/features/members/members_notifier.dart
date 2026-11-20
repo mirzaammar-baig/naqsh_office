@@ -1,16 +1,29 @@
+import 'dart:async';
+import 'package:naqsh_office/features/auth/auth_repository.dart';
+import 'package:naqsh_office/features/members/plot_booking.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:naqsh_office/features/members/fake_member_repository.dart';
+import 'package:naqsh_office/features/members/firestore_member_repository.dart';
 import 'package:naqsh_office/features/members/member.dart';
 
-// Data kahan se aata hai (abhi fake, baad mein Firestore).
-final memberRepositoryProvider = Provider<FakeMemberRepository>((ref) {
-  return FakeMemberRepository();
+// Data ab Firestore se aata hai.
+final memberRepositoryProvider = Provider<FirestoreMemberRepository>((ref) {
+  return FirestoreMemberRepository();
 });
 
 class MembersNotifier extends Notifier<List<Member>> {
   @override
   List<Member> build() {
-    return ref.read(memberRepositoryProvider).getMembers();
+    final repository = ref.read(memberRepositoryProvider);
+
+    // Firestore mein members badlein to state khud update ho jati hai.
+    final subscription = repository.watchMembers().listen((members) {
+      state = members;
+    });
+
+    ref.onDispose(subscription.cancel);
+
+    return const [];
   }
 
   // cnic dashes ke baghair 13 digits. exceptId edit ke waqt apna record chhorne ke liye.
@@ -18,7 +31,7 @@ class MembersNotifier extends Notifier<List<Member>> {
     return state.any((m) => m.cnic == cnic && m.id != exceptId);
   }
 
-  // Agla Member No khud banta hai: M-1021, M-1022...
+  // Agla Member No khud banta hai: M-1001, M-1002...
   String nextMemberNo() {
     var highest = 1000;
     for (final member in state) {
@@ -30,22 +43,55 @@ class MembersNotifier extends Notifier<List<Member>> {
     return 'M-${highest + 1}';
   }
 
-  void addMember(Member member) {
-    state = [...state, member];
+  Future<void> addMember(Member member) {
+    return ref.read(memberRepositoryProvider).saveMember(member);
   }
 
-  void updateMember(Member updated) {
-    state = [
-      for (final member in state)
-        if (member.id == updated.id) updated else member,
-    ];
+  Future<void> updateMember(Member updated) {
+    return ref.read(memberRepositoryProvider).saveMember(updated);
   }
 
-  void setActive(String id, bool value) {
-    state = [
-      for (final member in state)
-        if (member.id == id) member.copyWith(isActive: value) else member,
-    ];
+  Future<void> setActive(String id, bool value) {
+    return ref.read(memberRepositoryProvider).setActive(id, value);
+  }
+  // Earnest wale plots Booked, baaqi Hold. Receipt numbers wapas milte hain.
+  Future<List<String>> addMemberWithPlots(
+      Member member,
+      List<PlotBooking> bookings,
+      ) {
+    return ref
+        .read(memberRepositoryProvider)
+        .addMemberWithPlots(
+      member,
+      bookings,
+      by: AuthRepository().currentUser?.email ?? '',
+    );
+  }
+
+  // Maujooda member ko plots do: earnest wale Booked, baaqi Hold.
+  Future<List<String>> assignPlots(
+      String memberId,
+      List<PlotBooking> bookings, {
+        int holdDays = 3,
+      }) {
+    return ref
+        .read(memberRepositoryProvider)
+        .assignPlots(
+      memberId,
+      bookings,
+      by: AuthRepository().currentUser?.email ?? '',
+      holdDays: holdDays,
+    );
+  }
+
+  // Deactivate: member inactive aur uske plots wapas Available.
+  Future<void> deactivateMember(String memberId) {
+    return ref.read(memberRepositoryProvider).deactivateMember(memberId);
+  }
+
+  // Delete: member mit jata hai aur uske plots wapas Available.
+  Future<void> deleteMember(String memberId) {
+    return ref.read(memberRepositoryProvider).deleteMember(memberId);
   }
 }
 
